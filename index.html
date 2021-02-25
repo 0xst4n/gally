@@ -1,32 +1,102 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html>
-<body>
-    <button type="button" onclick="getDir()">Click</button>
-</body>
+  <head>
+      <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">          
+      
+      <!-- jQuery -->
+      <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js" type="text/javascript"></script>
+    
+      <!-- nanogallery2 -->
+      <link  href="https://cdn.jsdelivr.net/npm/nanogallery2@3/dist/css/nanogallery2.min.css" rel="stylesheet" type="text/css">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+      <script  type="text/javascript" src="https://cdn.jsdelivr.net/npm/nanogallery2@3/dist/jquery.nanogallery2.min.js"></script>
+  </head>
+  <body>
+  
+        <h1>lole</h1>
+        <button onclick="getDir()">SELECT ROOT FOLDER</button><br>
+        <div id="gally"></div>
+      
+        <script>
+
+          var dirs = {};
+
+          async function clearGallery() {
+            jQuery("#gally").nanogallery2("destroy");
+            jQuery('<div/>', {
+                id: 'gally',
+            }).appendTo('body');
+          }
+
+          async function loadGallery(dir='root') {
+            jQuery(document).ready(function () {
+              clearGallery();
+
+              console.log(dirs['art']);
+
+              obj = {
+                // ### gallery settings ### 
+                thumbnailHeight:  300,
+                thumbnailWidth:   300,
+                
+                // ### gallery content ### 
+                items: dirs[dir],
+              };
+              console.log(obj);
+
+              jQuery("#gally").nanogallery2(obj);
+            });
+          }
+
+          async function getDir() {
+            // root dir
+            const rootHandle = await window.showDirectoryPicker();
+            // loop through subdirs in rootdir
+            for await (const entry of rootHandle.values()) {
+              // gally expects subdirs, no direct images
+              if (entry.kind !== "directory") {
+                fileHandle = await rootHandle.getFileHandle(entry.name);
+                const blob = await fileHandle.getFile();
+                if (!blob.type.includes("image")) { continue; }
+                dirs["root"] = dirs["root"] || [];
+                await dirs["root"].push({'src': URL.createObjectURL(blob), 'title': entry.name});
+                continue;
+              }
+              const subDir = await rootHandle.getDirectoryHandle(entry.name);
+              for await (const file of subDir.values()) {
+                  // we don't go deeper, only handle images now
+                  if (file.kind !== "file") { continue; }
+                  fileHandle = await subDir.getFileHandle(file.name);
+                  const blob = await fileHandle.getFile();
+                  if (!blob.type.includes("image")) { continue; }
+                  // if key doesn't exist, intialize with empty array
+                  dirs[entry.name] = dirs[entry.name] || [];
+                  await dirs[entry.name].push({'src': URL.createObjectURL(blob), 'title': file.name});
+              }
+            }
+            await console.log(dirs);
+            
+            jQuery('<h3></h3>', { text: 'Your folders: '}).insertBefore("#gally");
+            for await (var k of Object.keys(dirs)) {
+              jQuery('<button/>', {
+                  class: 'button',
+                  title: k,
+                  text: k,
+                  onclick: "loadGallery('" + k + "')"
+              }).insertBefore('#gally');
+            }
+
+            await loadGallery();
+
+          }
+        </script>
+
+    </body>
+
+    <style>
+      .button {
+        margin-left: 5px;
+      }
+    </style>
 </html>
-
-<script>
-var dirs = [];
-
-async function getDir() {
-  const rootHandle = await window.showDirectoryPicker();
-  for await (const entry of rootHandle.values()) {
-    if (entry.kind === "directory") {
-        const subDir = await rootHandle.getDirectoryHandle(entry.name);
-        for await (const file of subDir.values()) {
-            fileHandle = await subDir.getFileHandle(file.name);
-            const blob = await fileHandle.getFile();
-            console.log(blob);
-            await dirs.push(blob);
-            const blobUrl = URL.createObjectURL(blob)
-            var img = document.createElement('img'); 
-            img.src = blobUrl;  
-            document.getElementsByTagName('body')[0].appendChild(img); 
-        }
-    }
-  }
-  await console.log(dirs);
-}
-
-
-</script>
