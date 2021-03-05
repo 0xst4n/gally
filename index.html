@@ -13,8 +13,10 @@
       <script  type="text/javascript" src="https://cdn.jsdelivr.net/npm/nanogallery2@3/dist/jquery.nanogallery2.min.js"></script>
   </head>
   <body>
+
+        <!--  if not lazy maybe i'll make my own gallery instead of using nanogallery2 -->
   
-        <h1>lole</h1>
+        <h1>gally</h1>
         <button onclick="getDir()">SELECT ROOT FOLDER</button><br>
         <div id="gally"></div>
       
@@ -54,11 +56,12 @@
             const rootHandle = await window.showDirectoryPicker();
             // loop through subdirs in rootdir
             for await (const entry of rootHandle.values()) {
-              // gally expects subdirs, no direct images
+              // gally expects subdirs and/or images in root folder
               if (entry.kind !== "directory") {
                 fileHandle = await rootHandle.getFileHandle(entry.name);
                 const blob = await fileHandle.getFile();
                 if (!blob.type.includes("image")) { continue; }
+                // if key doesn't exist, intialize with empty array
                 dirs["root"] = dirs["root"] || [];
                 await dirs["root"].push({'src': URL.createObjectURL(blob), 'title': entry.name});
                 continue;
